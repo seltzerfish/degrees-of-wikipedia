@@ -1,97 +1,111 @@
-import urllib
-import lxml.html
-import re
-from Queue import Queue
+from bs4 import BeautifulSoup
+import urllib.request
+from pprint import pprint
 import json
 from pathlib import Path
-from time import time
+from queue import Queue
+import re
 
-class State:
-    def __init__(self, title, link, parent):
+CACHE_FILE = "cache.json"
+
+class Page:
+    def __init__(self, url, title, parent):
+        self.url = url
         self.title = title
-        self.link = link
         self.parent = parent
 
-    def __hash__(self):
-        return hash(self.title)
+def strip_url(url):
+    return re.search("\/wiki\/(.+)$", url).group(1)
 
-    def __eq__(self, other):
-        if self.title == other.title:
+
+def link_is_valid(link):
+    if link.get('href') and link.get('href')[:6] == "/wiki/":
+        if (link.contents and str(link.contents[0])[0] != "<"
+                and ":" not in link.get('href')):
             return True
-        return False
+    return False
 
-def load_lookup_table():
-    table_file = Path("cache.txt")
+def get_links_from_page(url):
+    connection = urllib.request.urlopen(url)
+    links = []
+    soup = BeautifulSoup(connection, "lxml").find("div", {"id": "mw-content-text"})
+    for div in soup.find_all("div", {'class':'reflist'}): # exlude "references" section
+        div.decompose()
+    for div in soup.find_all("div", {'class':'refbegin'}): 
+        div.decompose()
+    for paragraph in soup.findAll('p'):
+        for link in paragraph.findAll('a'):
+            if link_is_valid(link):
+                links.append(link)
+    for list in soup.findAll('ul'):
+        for link in list.findAll('a'):
+            if link_is_valid(link):
+               links.append(link)
+    return links
+
+def load_cache():
+    table_file = Path(CACHE_FILE)
     if table_file.exists():
-        return json.load(open('cache.txt'))
+        return json.load(open(CACHE_FILE))
     return dict()
 
-def write_lookup_table(table):
-    with open('cache.txt', 'w') as file:
+
+def write_cache(table):
+    with open(CACHE_FILE, 'w') as file:
         file.write(json.dumps(table))
 
-def get_title(url):
-    return re.search('\/([^\/]+)\/?$', url).group(1)
+# def load_table():
+#     table_file = Path("table.json")
+#     if table_file.exists():
+#         return json.load(open("table.json"))
+#     return dict()
+
+
+# def write_table(table):
+#     with open("table.json", 'w') as file:
+#         file.write(json.dumps(table))
 
 
 
-def find(start_url, hard_mode=False):
-    try: 
-        s_time = time()
-        q = Queue()
-        explored = set()
-        cache = load_lookup_table()
+def build_path(current):
+    path = []
+    while current.parent:
+        path.append(current.title)
+        current = current.parent
+    path.append(current.title)
+    path.reverse()
+    return path
+
+def relate(start, destination):
+    visited = set()
+    cache = load_cache()
+    q = Queue()
+    q.put(Page(strip_url(start), strip_url(start), None)) # add initial state with no parent
+    visited.add(strip_url(start))
+    goal_suffix = strip_url(destination)
+    while True:
+        page = q.get()
+        if page.url in cache:
+            print("*** ", end="")
+            links = cache[page.url]
+        else:
+            anchor_tags = get_links_from_page("https://en.wikipedia.org/wiki/" + page.url)
+            links = [(a.get('href')[6:], a.contents[0]) for a in anchor_tags]
+            # cache[page.url] = links
+        print(build_path(page))
+        for url, title in links:
+            if url not in visited:
+                if url == goal_suffix:
+                    # write_cache(cache)
+                    p = build_path(page)
+                    p.append(title)
+                    return p
+                visited.add(url)
+                q.put(Page(url, title, page))
+
         
-        start_state = State(get_title(start_url), start_url, None)
-        q.put(start_state)
-        explored.add(get_title(start_url))
-        end_title = "/wiki/DYWP"
-
-        if hard_mode:
-            countries = []
-            with open("countries.txt", 'r') as f:
-                countries = f.read().splitlines()
-
-        for x in range(100000):
-            s = q.get()
-            print(s.title)
-            page_loaded = False
-            if s.title in cache:
-                links = cache[s.title]
-            else:
-                connection = urllib.urlopen(s.link)
-                dom =  lxml.html.fromstring(connection.read())
-                links = dom.xpath('//a/@href')
-                page_loaded = True
-                cache[s.title] = []
-            for link in links:
-                if (link[:6] == "/wiki/" and ":" not in link and link[6] != "/"):
-                    if page_loaded:
-                        cache[s.title].append(link)
-                    if hard_mode and get_title(link) in countries:
-                        continue
-                    if get_title(link) not in explored:
-                        explored.add(get_title(link))
-                        if link == end_title:
-                            with open("time.txt", "a") as f:
-                                f.write(str(time() - s_time) + "\n")
-                            print("\n******\n")
-                            path = s.title + " -> " + get_title(link)
-                            while s.parent:
-                                path = s.parent.title + " -> " + path
-                                s = s.parent
-                            if path.count("->") > 3:
-                                with open("long.txt", "a") as f:
-                                    f.write(path + "\n")
-                            print(path)
-                            print(len(cache))
-                            write_lookup_table(cache)
-                            return None
-                        q.put(State(get_title(link), "https://en.wikipedia.org" + link, s))
-    except KeyboardInterrupt:
-        write_lookup_table(cache)
 
 
 if __name__ == "__main__":
-    start_url = raw_input("start url: ")
-    find(start_url)
+    print(" -> ".join(relate("https://en.wikipedia.org/wiki/Jasper_High_School_(Alabama)", "https://en.wikipedia.org/wiki/DYWP")))
+
