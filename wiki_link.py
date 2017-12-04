@@ -8,11 +8,13 @@ import re
 
 CACHE_FILE = "cache.json"
 
+
 class Page:
     def __init__(self, url, title, parent):
         self.url = url
         self.title = title
         self.parent = parent
+
 
 def strip_url(url):
     return re.search("\/wiki\/(.+)$", url).group(1)
@@ -25,13 +27,16 @@ def link_is_valid(link):
             return True
     return False
 
+
 def get_links_from_page(url):
     connection = urllib.request.urlopen(url)
     links = []
-    soup = BeautifulSoup(connection, "lxml").find("div", {"id": "mw-content-text"})
-    for div in soup.find_all("div", {'class':'reflist'}): # exlude "references" section
+    soup = BeautifulSoup(connection, "lxml").find(
+        "div", {"id": "mw-content-text"})
+    # exlude "references" section
+    for div in soup.find_all("div", {'class': 'reflist'}):
         div.decompose()
-    for div in soup.find_all("div", {'class':'refbegin'}): 
+    for div in soup.find_all("div", {'class': 'refbegin'}):
         div.decompose()
     for paragraph in soup.findAll('p'):
         for link in paragraph.findAll('a'):
@@ -40,8 +45,9 @@ def get_links_from_page(url):
     for list in soup.findAll('ul'):
         for link in list.findAll('a'):
             if link_is_valid(link):
-               links.append(link)
+                links.append(link)
     return links
+
 
 def load_cache():
     table_file = Path(CACHE_FILE)
@@ -66,7 +72,6 @@ def write_cache(table):
 #         file.write(json.dumps(table))
 
 
-
 def build_path(current):
     path = []
     while current.parent:
@@ -76,11 +81,13 @@ def build_path(current):
     path.reverse()
     return path
 
+
 def relate(start, destination):
     visited = set()
     cache = load_cache()
     q = Queue()
-    q.put(Page(strip_url(start), strip_url(start), None)) # add initial state with no parent
+    # add initial state with no parent
+    q.put(Page(strip_url(start), strip_url(start), None))
     visited.add(strip_url(start))
     goal_suffix = strip_url(destination)
     while True:
@@ -89,7 +96,8 @@ def relate(start, destination):
             print("*** ", end="")
             links = cache[page.url]
         else:
-            anchor_tags = get_links_from_page("https://en.wikipedia.org/wiki/" + page.url)
+            anchor_tags = get_links_from_page(
+                "https://en.wikipedia.org/wiki/" + page.url)
             links = [(a.get('href')[6:], a.contents[0]) for a in anchor_tags]
             # cache[page.url] = links
         print(build_path(page))
@@ -103,9 +111,7 @@ def relate(start, destination):
                 visited.add(url)
                 q.put(Page(url, title, page))
 
-        
-
 
 if __name__ == "__main__":
-    print(" -> ".join(relate("https://en.wikipedia.org/wiki/Jasper_High_School_(Alabama)", "https://en.wikipedia.org/wiki/DYWP")))
-
+    print(" -> ".join(relate("https://en.wikipedia.org/wiki/Jasper_High_School_(Alabama)",
+                             "https://en.wikipedia.org/wiki/DYWP")))
