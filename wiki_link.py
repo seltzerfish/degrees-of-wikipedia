@@ -1,6 +1,5 @@
 from bs4 import BeautifulSoup
 import urllib.request
-from pprint import pprint
 import json
 from pathlib import Path
 from queue import Queue
