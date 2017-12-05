@@ -74,7 +74,7 @@ def build_path(current):
 
 def relate(start, destination, grow_cache=False):
     visited = set()
-    print("Loading cache...")
+    print("Loading cache... ", end="")
     cache = load_cache()
     print("Done.")
     q = Queue()
