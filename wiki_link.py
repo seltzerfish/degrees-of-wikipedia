@@ -35,6 +35,8 @@ def get_links_from_page(url):
     # exlude "references" section
     for div in soup.find_all("div", {'class': 'reflist'}):
         div.decompose()
+    for div in soup.find_all("div", {'class': 'navbox'}):
+        div.decompose()
     for div in soup.find_all("div", {'class': 'refbegin'}):
         div.decompose()
     for paragraph in soup.findAll('p'):
@@ -72,7 +74,9 @@ def build_path(current):
 
 def relate(start, destination, grow_cache=False):
     visited = set()
+    print("Loading cache...")
     cache = load_cache()
+    print("Done.")
     q = Queue()
     # add initial state with no parent
     q.put(Page(strip_url(start), strip_url(start), None))
@@ -107,4 +111,6 @@ if __name__ == "__main__":
         dest_link = "https://en.wikipedia.org/wiki/Adolf_Hitler"
     grow_cache = True if input(
         "grow cache? [Y/N]: ").strip().upper() == "Y" else False
-    print(" -> ".join(relate(start_link, dest_link, grow_cache=grow_cache)))
+    result = relate(start_link, dest_link, grow_cache=grow_cache)
+    print("\n****** Solution Found ******")
+    print(" -> ".join(result))
