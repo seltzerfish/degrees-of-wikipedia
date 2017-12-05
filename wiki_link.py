@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from queue import Queue
 import re
+from time import time
+import sys
 
 CACHE_FILE = "cache.json"
 
@@ -51,15 +53,23 @@ def get_links_from_page(url):
 
 
 def load_cache():
+    print("Loading cache... ", end="")
+    sys.stdout.flush()
+    start_time = time()
     table_file = Path(CACHE_FILE)
     if table_file.exists():
-        return json.load(open(CACHE_FILE))
-    return dict()
+        cache = json.load(open(CACHE_FILE))
+    else: cache = dict()
+    print("Cache loaded in {:.2f} seconds.".format(time() - start_time))
+    return cache
 
 
 def write_cache(table):
+    print("Updating cache... ", end="")
+    sys.stdout.flush()
     with open(CACHE_FILE, 'w') as file:
         file.write(json.dumps(table))
+    print("Done")
 
 
 def build_path(current):
@@ -74,9 +84,7 @@ def build_path(current):
 
 def relate(start, destination, grow_cache=False):
     visited = set()
-    print("Loading cache... ", end="")
     cache = load_cache()
-    print("Done.")
     q = Queue()
     # add initial state with no parent
     q.put(Page(strip_url(start), strip_url(start), None))
