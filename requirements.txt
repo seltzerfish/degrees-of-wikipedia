@@ -1,2 +1,5 @@
 beautifulsoup4>=4.6.0
 lxml>=4.1.1
+numpy
+selenium
+requests
