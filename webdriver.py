@@ -11,7 +11,7 @@ def show_results(results):
     driver = webdriver.Chrome()
     driver.get("https://en.wikipedia.org/wiki/" + results[0])
     cmd = """osascript -e 'tell app "Google Chrome" to activate'"""
-    # os.system(cmd) # uncomment if mac user
+    os.system(cmd) # uncomment if mac user
     del results[0]
     for r in results:
         element = driver.find_element_by_xpath('//a[@href="/wiki/'+r+'"]')
@@ -19,8 +19,8 @@ def show_results(results):
         if final_pos > 20:
             median = final_pos // 2
             cf = median / (median ** 4)
-            scroll_range = [int(cf * (i ** 4)) for i in linspace(0, median, SCROLL_FRAMES // 2)]
-            scroll_range += [int(cf * -1 *((i - final_pos) ** 4) + final_pos) for i in linspace(median, final_pos, SCROLL_FRAMES // 2)][1:]
+            scroll_range = [round(cf * (i ** 4)) for i in linspace(0, median, SCROLL_FRAMES // 2)]
+            scroll_range += [round(cf * -1 *((i - final_pos) ** 4) + final_pos) for i in linspace(median, final_pos, SCROLL_FRAMES // 2)][1:]
 
             for x in scroll_range:
                 driver.execute_script("window.scrollTo(0, {})".format(x))

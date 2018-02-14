@@ -7,7 +7,7 @@ import re
 from time import time, sleep
 from threading import Thread
 import sys
-from webdriver import *
+from webdriver import show_results
 
 CACHE_FILE = "cache.json"
 
@@ -22,7 +22,7 @@ class Page:
 
 
 def strip_url(url):
-    return re.search("\/wiki\/(.+)$", url).group(1)
+    return re.search(r"\/wiki\/(.+)$", url).group(1)
 
 
 def link_is_valid(link):
@@ -160,6 +160,7 @@ if __name__ == "__main__":
     cache = load_cache()
     from os import system
     import requests
+    grow_cache = input("save cache on shutdown? [y/n]: ").strip().upper() == "Y"
     while True:
         try:
             start_link = input("starting page: ")
@@ -175,5 +176,6 @@ if __name__ == "__main__":
                 print("Solution not found :(")
         except (KeyboardInterrupt) as e:
             print(e)
-            write_cache(cache)
+            if grow_cache:
+                write_cache(cache)
             break
