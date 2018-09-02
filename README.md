@@ -6,4 +6,4 @@
 
 1) run `pip install -r requirements.txt`
 
-2) run `python multithread_request_single_extraction.py`
+2) run `python main.py`
