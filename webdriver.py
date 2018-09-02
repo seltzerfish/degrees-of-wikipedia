@@ -12,7 +12,7 @@ def show_results(results):
     driver = webdriver.Firefox()
     driver.get("https://en.wikipedia.org/wiki/" + results[0])
     cmd = """osascript -e 'tell app "Firefox" to activate'"""
-    os.system(cmd)  # uncomment if mac user
+    # os.system(cmd)  # uncomment if mac user
     del results[0]
     for r in results:
         element = driver.find_element_by_xpath('//a[@href="/wiki/'+r+'"]')
