@@ -21,7 +21,10 @@ class Page:
 
 
 def strip_url(url):
-    return re.search(r"\/wiki\/(.+)$", url).group(1)
+    stripped = re.search(r"\/wiki\/(.+)$", url)
+    if stripped:
+        return stripped.group(1)
+    return url
 
 
 def link_is_valid(link):
@@ -94,7 +97,7 @@ def build_path(current):
 def check_links(links, visited, queue, goal_suffix, page, grow_cache):
     for url, title in links:
         if url not in visited:
-            if url == goal_suffix:
+            if url.lower() == goal_suffix.replace(' ','_').lower():
                 if grow_cache:
                     write_cache(cache)
                 p = build_path(page)
